@@ -1,1 +1,33 @@
+name: Sync Public APIs
+
+on:
+  schedule:
+    - cron: "0 0 * * *"   # 每天 0 点自动同步
+  workflow_dispatch:       # 手动触发
+  push:
+    paths:
+      - ".github/workflows/sync-public-apis.yml"
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Fetch latest public APIs
+        run: |
+          curl -s https://api.publicapis.org/entries -o data/public-apis.json
+
+      - name: Commit changes
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add data/public-apis.json
+          git commit -m "Sync public APIs" || echo "No changes to commit"
+
+      - name: Push changes
+        run: |
+          git push
 
