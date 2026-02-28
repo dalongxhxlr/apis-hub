@@ -1,6 +1,6 @@
 module.exports = async (req, res) => {
   try {
-    const r = await fetch('https://api.publicapis.org/entries');
+    const r = await fetch('https://public-api-proxy.vercel.app/api/entries');
     const data = await r.json();
 
     res.setHeader('Access-Control-Allow-Origin', '*');
