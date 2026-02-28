@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>免费 API 导航站 · Public APIs Hub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 0; background: #0f172a; color: #e5e7eb; }
+    header { background: #020617; padding: 14px 20px; border-bottom: 1px solid #1e293b; display: flex; gap: 20px; align-items: center; }
+    header a { color: #38bdf8; text-decoration: none; font-size: 15px; }
+    header a:hover { text-decoration: underline; }
+
+    .container { padding: 20px; }
+    h1 { margin: 0 0 10px; }
+    .meta { color: #94a3b8; margin-bottom: 20px; }
+
+    .search-box { margin-bottom: 16px; }
+    input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #334155; background: #020617; color: #e5e7eb; }
+
+    .filters { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .tag { padding: 6px 10px; background: #1e293b; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .tag.active { background: #38bdf8; color: #0f172a; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .card { background: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 14px; }
+    .card h2 { margin: 0 0 6px; font-size: 16px; }
+    .card .desc { font-size: 13px; color: #94a3b8; margin-bottom: 6px; }
+    .card a { color: #38bdf8; font-size: 13px; }
+    .fav-btn { margin-top: 8px; font-size: 12px; cursor: pointer; color: #fbbf24; }
+
+    .section-title { margin: 30px 0 10px; font-size: 20px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/">Public APIs Hub</a>
+  <a href="https://mykvideo-pi.vercel.app" target="_blank">KVideo</a>
+  <a href="https://你的工具站地址" target="_blank">工具站</a>
+</header>
+
+<div class="container">
+  <h1>免费 API 导航站</h1>
+  <div class="meta">数据来源：public-apis.org · 支持中文分类、搜索、收藏</div>
+
+  <div class="search-box">
+    <input id="search" placeholder="搜索 API 名称 / 描述 / 分类…" />
+  </div>
+
+  <div id="categories" class="filters"></div>
+
+  <h2 class="section-title">⭐ 我的收藏</h2>
+  <div id="favorites" class="grid"></div>
+
+  <h2 class="section-title">📚 全部 API</h2>
+  <div id="status">正在加载数据…</div>
+  <div id="list" class="grid"></div>
+</div>
+
+<script>
+  const statusEl = document.getElementById('status');
+  const listEl = document.getElementById('list');
+  const searchEl = document.getElementById('search');
+  const categoriesEl = document.getElementById('categories');
+  const favoritesEl = document.getElementById('favorites');
+
+  let allApis = [];
+  let activeCategory = '';
+  let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+
+  function saveFavorites() {
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+  }
+
+  function toggleFavorite(api) {
+    const exists = favorites.find(x => x.API === api.API);
+    if (exists) {
+      favorites = favorites.filter(x => x.API !== api.API);
+    } else {
+      favorites.push(api);
+    }
+    saveFavorites();
+    renderFavorites();
+    renderList();
+  }
+
+  function renderFavorites() {
+    favoritesEl.innerHTML = favorites.length
+      ? favorites.map(api => cardHTML(api, true)).join('')
+      : '<div style="color:#64748b;">暂无收藏</div>';
+  }
+
+  function cardHTML(api, isFavSection = false) {
+    const isFav = favorites.some(x => x.API === api.API);
+    return `
+      <div class="card">
+        <h2>${api.API}</h2>
+        <div class="desc">${api.Description}</div>
+        <div class="desc">分类：${api.Category}</div>
+        <a href="${api.Link}" target="_blank">打开文档</a>
+        <div class="fav-btn" onclick='toggleFavorite(${JSON.stringify(api)})'>
+          ${isFav ? '★ 已收藏' : '☆ 收藏'}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderCategories() {
+    const cats = [...new Set(allApis.map(a => a.Category))].sort();
+    categoriesEl.innerHTML = cats.map(cat => `
+      <div class="tag ${cat === activeCategory ? 'active' : ''}"
+           onclick="selectCategory('${cat}')">${cat}</div>
+    `).join('');
+  }
+
+  function selectCategory(cat) {
+    activeCategory = activeCategory === cat ? '' : cat;
+    renderCategories();
+    renderList();
+  }
+
+  function renderList() {
+    const q = searchEl.value.trim().toLowerCase();
+    let list = allApis;
+
+    if (activeCategory) {
+      list = list.filter(a => a.Category === activeCategory);
+    }
+
+    if (q) {
+      list = list.filter(a =>
+        a.API.toLowerCase().includes(q) ||
+        a.Description.toLowerCase().includes(q) ||
+        a.Category.toLowerCase().includes(q)
+      );
+    }
+
+    statusEl.textContent = `共 ${list.length} 个 API`;
+    listEl.innerHTML = list.map(api => cardHTML(api)).join('');
+  }
+
+  async function load() {
+    const res = await fetch('https://api.publicapis.org/entries');
+    const data = await res.json();
+    allApis = data.entries;
+    renderCategories();
+    renderFavorites();
+    renderList();
+  }
+
+  searchEl.addEventListener('input', renderList);
+  load();
+</script>
+
+</body>
+</html>
