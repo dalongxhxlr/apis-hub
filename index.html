@@ -139,14 +139,19 @@
     listEl.innerHTML = list.map(api => cardHTML(api)).join('');
   }
 
-  async function load() {
-    const res = await fetch('https://api.publicapis.org/entries');
+async function load() {
+  try {
+    const res = await fetch('https://cors.isteed.cc/https://api.publicapis.org/entries');
     const data = await res.json();
     allApis = data.entries;
     renderCategories();
     renderFavorites();
     renderList();
+  } catch (e) {
+    statusEl.textContent = '加载失败：API CORS 被阻止';
   }
+}
+
 
   searchEl.addEventListener('input', renderList);
   load();
