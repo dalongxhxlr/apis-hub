@@ -1,14 +1,12 @@
-async function load() {
+module.exports = async (req, res) => {
   try {
-    const res = await fetch('/api/public-apis');
-    const data = await res.json();
-    allApis = data.entries || [];
-    renderCategories();
-    renderFavorites();
-    renderList();
+    const r = await fetch('https://api.publicapis.org/entries');
+    const data = await r.json();
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.status(200).json(data);
   } catch (e) {
     console.error(e);
-    statusEl.textContent = '加载失败：后端代理异常';
+    res.status(500).json({ error: 'fetch failed' });
   }
-}
-
+};
